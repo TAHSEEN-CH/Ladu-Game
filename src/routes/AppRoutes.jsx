@@ -1,24 +1,27 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
+
 import MainLayout from '../layouts/MainLayout';
+
 import Home from '../pages/Home';
 import Lobby from '../pages/Lobby';
 import Game from '../pages/Game';
 import Rules from '../pages/Rules';
 import NotFound from '../pages/NotFound';
+import OfflineSetup from '../pages/OfflineSetup';
 
 function AppRoutes() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Home />} />
-          <Route path="lobby" element={<Lobby />} />
-          <Route path="game/:roomId" element={<Game />} />
-          <Route path="rules" element={<Rules />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route element={<MainLayout />}>
+        <Route index element={<Home />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/offline-setup" element={<OfflineSetup />} />
+        <Route path="/lobby" element={<Lobby />} />
+        <Route path="/game/:roomId" element={<Game />} />
+        <Route path="/rules" element={<Rules />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
   );
 }
 

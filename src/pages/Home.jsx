@@ -1,5 +1,11 @@
 import { Link } from 'react-router-dom';
 
+
+
+
+
+
+
 function Home() {
   return (
     <div className="min-h-screen bg-linear-to-b from-gray-900 via-gray-800 to-gray-900">
@@ -27,6 +33,12 @@ function Home() {
                   className="px-8 py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transform hover:scale-105 transition-all duration-200"
                 >
                   Learn Rules
+                </Link>
+                <Link
+                  to="/offline-setup"
+                   className="px-8 py-3 bg-yellow-400 text-gray-900 font-semibold rounded-lg hover:bg-yellow-300 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-yellow-400/30"
+                >
+                  Play Offline
                 </Link>
               </div>
             </div>
