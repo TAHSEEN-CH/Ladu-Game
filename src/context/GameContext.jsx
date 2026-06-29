@@ -5,6 +5,7 @@
  * 
  * Production-ready React Context for Ludo game state management.
  * Uses useReducer architecture with comprehensive actions for game operations.
+ * Supports both Online (multiplayer) and Offline (local) game modes.
  * Frontend-only - ready for future Socket.IO integration.
  */
 
@@ -373,6 +374,51 @@ const gameReducer = (state, action) => {
       };
     }
 
+    // ============================================================
+    // OFFLINE MODE ACTIONS
+    // ============================================================
+
+    case 'INIT_OFFLINE_GAME': {
+      const { settings } = action.payload;
+
+      // Build players from settings
+      const players = settings.playerNames.map((name, index) => ({
+        id: `player-${index}`,
+        name: name,
+        color: settings.playerColors[index] || getAvailableColor([]),
+        isHost: index === 0,
+        isReady: true,
+        joinedAt: Date.now(),
+        isAI: settings.mode === 'vs_computer' && index === settings.playerNames.length - 1,
+        difficulty: settings.difficulty || null,
+      }));
+
+      return {
+        ...state,
+        room: {
+          ...state.room,
+          id: 'offline',
+          name: 'Offline Game',
+          hostId: players[0]?.id || null,
+          gameMode: `${settings.players} Players`,
+          maxPlayers: settings.players,
+          connectedPlayers: settings.players,
+          createdAt: Date.now()
+        },
+        players: players,
+        gameStatus: 'waiting',
+        settings: {
+          ...state.settings,
+          turnTimeLimit: settings.timer || 30,
+          maxPlayers: settings.players,
+          gameMode: settings.mode === 'vs_computer' ? 'Vs Computer' : 'Local Multiplayer',
+          isPrivate: false,
+          difficulty: settings.difficulty || null,
+          options: settings.options || {},
+        }
+      };
+    }
+
     default:
       return state;
   }
@@ -583,6 +629,17 @@ function GameProvider({ children }) {
     });
   }, []);
 
+  /**
+   * Initializes an offline game.
+   * @param {Object} settings - Offline game settings
+   */
+  const initOfflineGame = useCallback((settings) => {
+    dispatch({
+      type: 'INIT_OFFLINE_GAME',
+      payload: { settings }
+    });
+  }, []);
+
   // ============================================================
   // MEMOIZED CONTEXT VALUE
   // ============================================================
@@ -604,7 +661,9 @@ function GameProvider({ children }) {
     addPlayer,
     removePlayer,
     setWinner,
-    updateSettings
+    updateSettings,
+    // Offline mode actions
+    initOfflineGame,
   }), [
     state,
     createRoom,
@@ -620,7 +679,8 @@ function GameProvider({ children }) {
     addPlayer,
     removePlayer,
     setWinner,
-    updateSettings
+    updateSettings,
+    initOfflineGame,
   ]);
 
   return (
@@ -652,94 +712,3 @@ function useGame() {
 // ============================================================
 
 export { GameContext, GameProvider, useGame };
-
-// ============================================================
-// EXPLANATION
-// ============================================================
-
-/**
- * 1. What actions were added:
- * 
- * - CREATE_ROOM: Initializes a new room with host player
- * - JOIN_ROOM: Adds a new player to the room
- * - LEAVE_ROOM: Removes a player from the room
- * - START_GAME: Transitions game from waiting to playing
- * - RESET_GAME: Resets game state while keeping players
- * - UPDATE_GAME_STATUS: Manually updates game status
- * - UPDATE_BOARD: Updates board state (cells, tokens, moves)
- * - UPDATE_DICE: Updates dice value and rolling state
- * - UPDATE_TURN: Updates current turn information
- * - UPDATE_PLAYER: Updates specific player properties
- * - ADD_PLAYER: Adds a player (alternative to JOIN_ROOM)
- * - REMOVE_PLAYER: Removes a player (alternative to LEAVE_ROOM)
- * - SET_WINNER: Sets the winner and ends the game
- * - UPDATE_SETTINGS: Updates game settings
- * 
- * 2. How createRoom() works:
- * 
- * - Generates a unique room ID if not provided
- * - Creates room object with metadata (id, name, hostId, etc.)
- * - Sets connectedPlayers to 1 (the host)
- * - Creates the host player in the players array
- *   - Sets isHost: true
- *   - Sets isReady: false
- * - Sets gameStatus to "waiting"
- * - Stores createdAt timestamp
- * - Updates settings with room configuration
- * 
- * 3. How joinRoom() works:
- * 
- * - Validates player doesn't already exist in the room
- * - Validates room isn't full (maxPlayers)
- * - Creates player object with:
- *   - Provided id, name, color (auto-assigns color if not provided)
- *   - isHost: false
- *   - isReady: false
- *   - joinedAt timestamp
- * - Increments connectedPlayers count
- * - Adds player to players array
- * - Automatically assigns available color using getAvailableColor()
- * 
- * 4. Why this design makes Socket.IO integration easy later:
- * 
- * - The reducer pattern separates state mutations from the UI:
- *   * All state updates go through well-defined actions
- *   * Actions are pure and predictable
- *   * Easy to synchronize with server via Socket.IO
- * 
- * - Socket.IO integration would involve:
- *   * Wrapping actions to send events to server
- *   * Listening for server events and dispatching local actions
- *   * Maintaining optimistic updates with rollback support
- * 
- * - Example integration:
- * 
- *   const createRoom = useCallback((roomData) => {
- *     // Send to server
- *     socket.emit('createRoom', roomData);
- *     
- *     // Optimistically update local state
- *     dispatch({ type: 'CREATE_ROOM', payload: { roomData } });
- *   }, []);
- * 
- *   // Server listener
- *   socket.on('roomCreated', (data) => {
- *     // Sync with server state
- *     dispatch({ type: 'UPDATE_ROOM', payload: data });
- *   });
- * 
- * - The action functions are separated from the UI:
- *   * Components don't need to know about Socket.IO
- *   * Can easily swap between local and server operations
- *   * Great for offline-first architecture
- * 
- * - State is serializable:
- *   * All state is plain JavaScript objects
- *   * Easy to send over Socket.IO
- *   * Easy to rehydrate from server
- * 
- * - The design is event-sourcing ready:
- *   * Actions represent all state changes
- *   * Can replay actions to rebuild state
- *   * Perfect for multiplayer synchronization
- */

@@ -1,7 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-
 import MainLayout from '../layouts/MainLayout';
-
 import Home from '../pages/Home';
 import Lobby from '../pages/Lobby';
 import Game from '../pages/Game';
@@ -17,6 +15,8 @@ function AppRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/offline-setup" element={<OfflineSetup />} />
         <Route path="/lobby" element={<Lobby />} />
+        {/* This route handles both online (with roomId) and offline modes */}
+        <Route path="/game/offline" element={<Game />} />
         <Route path="/game/:roomId" element={<Game />} />
         <Route path="/rules" element={<Rules />} />
         <Route path="*" element={<NotFound />} />

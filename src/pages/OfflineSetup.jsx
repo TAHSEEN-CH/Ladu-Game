@@ -10,6 +10,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useGame } from '../context/GameContext';
 
 // ============================================================
 // CONSTANTS
@@ -77,6 +78,7 @@ const getColorRingClasses = (color) => {
  */
 const OfflineSetup = () => {
     const navigate = useNavigate();
+    const { initOfflineGame } = useGame();
 
     // ============================================================
     // STATE
@@ -183,21 +185,27 @@ const OfflineSetup = () => {
      * Handles starting the game.
      */
     const handleStartGame = () => {
-        // Build settings object
+    
+
         const settings = {
             mode: gameMode,
             players: playerCount,
-            difficulty: gameMode === GAME_MODES.VS_COMPUTER ? difficulty : null,
-            timer: timer,
+            difficulty:
+                gameMode === GAME_MODES.VS_COMPUTER
+                    ? difficulty
+                    : null,
+            timer,
             playerNames: playerNames.slice(0, playerCount),
-            playerColors: playerColors.slice(0, playerCount),
-            options: options,
+            playerColors: playerColors
+                .slice(0, playerCount)
+                .map(color => color.toLowerCase()),
+            options,
         };
 
-        // Navigate to game page with settings
-        navigate('/game/offline', {
-            state: { settings },
-        });
+        // Initialize offline room
+        initOfflineGame(settings);
+
+        navigate('/game/offline');
     };
 
     /**
@@ -238,8 +246,8 @@ const OfflineSetup = () => {
                                 <button
                                     onClick={() => setGameMode(GAME_MODES.VS_COMPUTER)}
                                     className={`p-4 rounded-xl border-2 transition-all duration-200 ${gameMode === GAME_MODES.VS_COMPUTER
-                                            ? 'border-yellow-400 bg-yellow-400/10 ring-2 ring-yellow-400/50'
-                                            : 'border-gray-600 hover:border-gray-400 bg-gray-700/30'
+                                        ? 'border-yellow-400 bg-yellow-400/10 ring-2 ring-yellow-400/50'
+                                        : 'border-gray-600 hover:border-gray-400 bg-gray-700/30'
                                         }`}
                                 >
                                     <div className="text-3xl mb-2">🤖</div>
@@ -251,8 +259,8 @@ const OfflineSetup = () => {
                                 <button
                                     onClick={() => setGameMode(GAME_MODES.LOCAL_MULTIPLAYER)}
                                     className={`p-4 rounded-xl border-2 transition-all duration-200 ${gameMode === GAME_MODES.LOCAL_MULTIPLAYER
-                                            ? 'border-yellow-400 bg-yellow-400/10 ring-2 ring-yellow-400/50'
-                                            : 'border-gray-600 hover:border-gray-400 bg-gray-700/30'
+                                        ? 'border-yellow-400 bg-yellow-400/10 ring-2 ring-yellow-400/50'
+                                        : 'border-gray-600 hover:border-gray-400 bg-gray-700/30'
                                         }`}
                                 >
                                     <div className="text-3xl mb-2">👥</div>
@@ -273,8 +281,8 @@ const OfflineSetup = () => {
                                         key={count}
                                         onClick={() => setPlayerCount(count)}
                                         className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${playerCount === count
-                                                ? 'bg-yellow-400 text-gray-900'
-                                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                                            ? 'bg-yellow-400 text-gray-900'
+                                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
                                             }`}
                                     >
                                         {count} Players
@@ -295,8 +303,8 @@ const OfflineSetup = () => {
                                             key={diff}
                                             onClick={() => setDifficulty(diff)}
                                             className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${difficulty === diff
-                                                    ? 'bg-yellow-400 text-gray-900'
-                                                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                                                ? 'bg-yellow-400 text-gray-900'
+                                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
                                                 }`}
                                         >
                                             {diff}
@@ -341,10 +349,10 @@ const OfflineSetup = () => {
                                                             onClick={() => handlePlayerColorChange(index, color)}
                                                             disabled={isDisabled && !isSelected}
                                                             className={`w-10 h-10 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${isSelected
-                                                                    ? `ring-2 ${getColorRingClasses(color)} ring-offset-2 ring-offset-gray-800`
-                                                                    : isDisabled
-                                                                        ? 'opacity-30 cursor-not-allowed'
-                                                                        : 'hover:scale-110'
+                                                                ? `ring-2 ${getColorRingClasses(color)} ring-offset-2 ring-offset-gray-800`
+                                                                : isDisabled
+                                                                    ? 'opacity-30 cursor-not-allowed'
+                                                                    : 'hover:scale-110'
                                                                 } ${getColorClasses(color)}`}
                                                             aria-label={`Select ${color}`}
                                                         />
@@ -368,8 +376,8 @@ const OfflineSetup = () => {
                                         key={option.value}
                                         onClick={() => setTimer(option.value)}
                                         className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${timer === option.value
-                                                ? 'bg-yellow-400 text-gray-900'
-                                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                                            ? 'bg-yellow-400 text-gray-900'
+                                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
                                             }`}
                                     >
                                         {option.label}
@@ -485,8 +493,8 @@ const OfflineSetup = () => {
                         onClick={handleStartGame}
                         disabled={!isFormValid}
                         className={`px-8 py-3 font-semibold rounded-lg transition-all duration-200 ${isFormValid
-                                ? 'bg-yellow-400 hover:bg-yellow-300 text-gray-900 shadow-lg hover:shadow-yellow-400/30 transform hover:scale-105'
-                                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                            ? 'bg-yellow-400 hover:bg-yellow-300 text-gray-900 shadow-lg hover:shadow-yellow-400/30 transform hover:scale-105'
+                            : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                             }`}
                     >
                         🚀 Start Game

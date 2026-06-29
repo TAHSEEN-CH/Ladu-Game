@@ -4,14 +4,16 @@
  * Game Page Component
  * 
  * Main game page that orchestrates the game UI.
- * Connects GameContext with the GameContainer component.
- * Handles room validation, navigation, and game state management.
+ * Acts as a router component that decides between Offline and Online game modes.
+ * - Offline Mode: Renders OfflineGame component with settings from location state
+ * - Online Mode: Full multiplayer experience with room validation and GameContext
  */
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext.jsx';
 import { FaUsers, FaDice, FaClock, FaGamepad, FaArrowLeft } from 'react-icons/fa';
+import OfflineGame from '../components/Game/OfflineGame.jsx';
 
 // ============================================================
 // CONSTANTS
@@ -97,13 +99,15 @@ const getStatusDisplay = (status) => {
 
 /**
  * Main Game page component.
- * Validates room, manages game state, and renders the game UI.
+ * Acts as a router between Offline and Online game modes.
  */
 function Game() {
+
   // ============================================================
   // HOOKS
   // ============================================================
 
+  const location = useLocation();
   const { roomId } = useParams();
   const navigate = useNavigate();
   const {
@@ -119,7 +123,50 @@ function Game() {
   } = useGame();
 
   // ============================================================
-  // STATE
+  // DETECT OFFLINE MODE
+  // ============================================================
+
+  /**
+   * Determines if the game should run in offline mode.
+   * Offline mode is true when:
+   * - The roomId is 'offline'
+   * - OR location.state indicates offline play
+   */
+
+  const isOffline =
+    location.pathname === "/game/offline" ||
+    roomId === "offline" ||
+    location.state?.offline === true ||
+    location.state?.gameType === "offline";
+
+
+  // ============================================================
+  // OFFLINE MODE RENDER
+  // ============================================================
+
+  if (isOffline) {
+    console.log("OfflineGame should render");
+    // Get settings from location state or use defaults
+    const settings = location.state?.settings || {
+      mode: 'local_multiplayer',
+      players: 2,
+      difficulty: null,
+      timer: 30,
+      playerNames: ['Player 1', 'Player 2'],
+      playerColors: ['Red', 'Green'],
+      options: {
+        allowUndo: true,
+        showPossibleMoves: true,
+        enableSound: true,
+        enableAnimations: true,
+      },
+    };
+
+    return <OfflineGame settings={settings} />;
+  }
+
+  // ============================================================
+  // ONLINE MODE - STATE
   // ============================================================
 
   const [isLoading, setIsLoading] = useState(true);
@@ -127,7 +174,7 @@ function Game() {
   const [roomNotFound, setRoomNotFound] = useState(false);
 
   // ============================================================
-  // EFFECTS
+  // ONLINE MODE - EFFECTS
   // ============================================================
 
   /**
@@ -182,7 +229,7 @@ function Game() {
   }, []);
 
   // ============================================================
-  // HANDLERS
+  // ONLINE MODE - HANDLERS
   // ============================================================
 
   /**
@@ -210,7 +257,7 @@ function Game() {
   };
 
   // ============================================================
-  // COMPUTED VALUES
+  // ONLINE MODE - COMPUTED VALUES
   // ============================================================
 
   const currentPlayer = getCurrentPlayer(state, currentPlayerId);
@@ -222,7 +269,7 @@ function Game() {
   const maxPlayers = state?.room?.maxPlayers || 4;
 
   // ============================================================
-  // RENDER
+  // ONLINE MODE - RENDER
   // ============================================================
 
   // Loading State
@@ -259,7 +306,7 @@ function Game() {
     );
   }
 
-  // Room exists - render game
+  // Room exists - render online game
   return (
     <div className="min-h-screen bg-linear-to-b from-gray-900 via-gray-800 to-gray-900 py-4 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -510,75 +557,3 @@ function Game() {
 // ============================================================
 
 export default Game;
-
-// ============================================================
-// EXPLANATION
-// ============================================================
-
-/**
- * 1. How Game.jsx receives the room:
- * 
- * - The room ID is extracted from the URL using useParams()
- * - The room data is retrieved from GameContext using useGame()
- * - The component validates that the room exists and matches the ID
- * - All room data is displayed in the UI (room name, ID, players, status)
- * 
- * 2. How it validates the room ID:
- * 
- * - First, it checks if the room ID format is valid (minimum length)
- * - Then it checks if the room exists in the context state
- * - It compares the room ID from the URL with the room ID in context
- * - If the room doesn't exist or doesn't match, it shows "Room Not Found"
- * - A 3-second timeout is used to allow the context to load
- * 
- * 3. How it connects GameContext with the UI:
- * 
- * - All game state is displayed directly in the UI
- * - Player list shows all connected players with their colors and status
- * - Game status shows current state (waiting, playing, finished)
- * - Controls show the host can start the game when enough players join
- * - Leave Room button calls leaveRoom() from context
- * 
- * 4. Why this structure makes multiplayer integration easy later:
- * 
- * - The component is already using a centralized state management (GameContext)
- * - All game data flows through the context, making it easy to sync with a server
- * - Socket.IO integration would involve:
- *   * Listening for server events in Game.jsx
- *   * Dispatching context actions when receiving server data
- *   * Emitting events when actions are performed
- * 
- * - Example Socket.IO integration:
- * 
- *   useEffect(() => {
- *     if (!socket) return;
- * 
- *     // Listen for game state updates from server
- *     socket.on('gameStateUpdate', (data) => {
- *       updateBoard(data.board);
- *       updateDice(data.dice);
- *       updateTurn(data.turn);
- *     });
- * 
- *     socket.on('playerJoined', (player) => {
- *       addPlayer(player);
- *     });
- * 
- *     socket.on('gameStarted', () => {
- *       updateGameStatus('playing');
- *     });
- * 
- *     return () => {
- *       socket.off('gameStateUpdate');
- *       socket.off('playerJoined');
- *       socket.off('gameStarted');
- *     };
- *   }, [socket]);
- * 
- * - The component is ready for real-time updates because:
- *   * It uses React's state management efficiently
- *   * It handles loading and error states gracefully
- *   * It has clear separation between UI and game logic
- *   * It uses the same data flow pattern that Socket.IO uses
- *   * The UI automatically updates when context state changes
- */
